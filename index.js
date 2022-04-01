@@ -1,6 +1,6 @@
 const io = require("socket.io")(8900,{
 	cors:{
-		origin:"http://localhost:3000",
+		origin:["https://wantechcorp.netlify.app","https://www.wantechcorp.netlify.app","https://wan-network.herokuapp.com","https://www.wan-network.herokuapp.com",],
 	},
 });
 
