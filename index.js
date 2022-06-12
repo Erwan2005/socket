@@ -10,7 +10,7 @@ let users = [];
 
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: ["https://wantechcorp.netlify.app/","https://www.wantechcorp.netlify.app/"],
     methods: ["GET", "POST"],
   },
 });
