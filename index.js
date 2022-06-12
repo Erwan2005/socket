@@ -1,13 +1,23 @@
-const io = require("socket.io")(8900,{
-	cors:{
-		origin:["https://wantechcorp.netlify.app","https://www.wantechcorp.netlify.app","https://wan-network.herokuapp.com","https://www.wan-network.herokuapp.com",],
-	},
+const express = require("express");
+const app = express();
+const http = require("http");
+const cors = require("cors");
+const { Server } = require("socket.io");
+app.use(cors());
+
+const server = http.createServer(app);
+let users = [];
+
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
 });
 
-let users = [];
-const addUser = (userId, socketId)=>{
-	!users.some((user) => user.userId === userId) &&
-		users.push({userId, socketId});
+const addUser = (userId, socketId) => {
+  !users.some((user) => user.userId === userId) &&
+    users.push({ userId, socketId });
 };
 
 const removeUser = (socketId) => {
@@ -18,27 +28,22 @@ const getUser = (userId) => {
   return users.find((user) => user.userId === userId);
 };
 
-
 io.on("connection", (socket) => {
-	console.log("A user connected.")
-	socket.on("addUser", (userId) =>{
-		addUser(userId, socket.id);
-		io.emit("getUsers",users);
-	});
+  console.log("a user connected.");
 
-	socket.on("sendMessage", ({ senderId, receiverId, text }) => {
-	    const user = getUser(receiverId);
-	    console.log(senderId,receiverId,text,user);
-	    /*io.to(user.socketId).emit("getMessage", {
-	      senderId,
-	      text,
-	    });*/
-	});
-
-	socket.on("disconnect", () => {
-    console.log("a user disconnected!");
-    removeUser(socket.id);
+  //take userId and socketId from user
+  socket.on("addUser", (userId) => {
+    addUser(userId, socket.id);
     io.emit("getUsers", users);
   });
 
+  socket.on("disconnect", () => {
+    console.log("User Disconnected", socket.id);
+    removeUser(socket.id);
+    io.emit("getUsers", users);
+  });
+});
+
+server.listen(3001, () => {
+  console.log("SERVER RUNNING");
 });
