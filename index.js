@@ -7,17 +7,13 @@ app.use(cors());
 
 const PORT = process.env.PORT || 3001;
 
-app.get('/',(req,res)=>{
-  res.write('<h1>Socket started at port: ${PORT}</h1>');
-  res.end();
-})
 
 const server = http.createServer(app);
 let users = [];
 
 const io = new Server(server, {
   cors: {
-    origin: "https://wantechcorp.netlify.app/",
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
