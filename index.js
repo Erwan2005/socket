@@ -1,53 +1,64 @@
-const express = require("express");
+const express = require('express');
+const socketio = require('socket.io');
+const http = require('http');
+const cors = require('cors');
+
+const { addUser, removeUser, getUser, getUsersInRoom } = require('./user.js')
+
+const PORT = process.env.PORT || 5000;
+
+const router = require('./router');
+const { Socket } = require('dgram');
+
 const app = express();
-const http = require("https");
-const cors = require("cors");
-const { Server } = require("socket.io");
+const server = http.createServer(app);
+const io = socketio(server);
+
+app.use(router);
 app.use(cors());
 
-const PORT = process.env.PORT || 3001;
+io.on('connect', (socket) => {
+  //console.log('We have a new connection!!!');
 
+  socket.on('join', ({ name, room }, callback) => {
+    //console.log(name, room);
 
-const server = http.createServer(app);
-let users = [];
+    const { error, user } = addUser({ id: socket.id, name, room });
 
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
-});
+    if (error) return callback(error);
 
-const addUser = (userId, socketId) => {
-  !users.some((user) => user.userId === userId) &&
-    users.push({ userId, socketId });
-};
+    socket.emit('message', { user: 'admin', text: `${user.name}, welcome to the room ${user.room}` });
+    socket.broadcast.to(user.room).emit('message', { user: 'admin', text: `${user.name}, has joined!` });
 
-const removeUser = (socketId) => {
-  users = users.filter((user) => user.socketId !== socketId);
-};
+    socket.join(user.room);
 
-const getUser = (userId) => {
-  return users.find((user) => user.userId === userId);
-};
+    io.to(user.room).emit('roomData', { room: user.room, users: getUsersInRoom(user.room) });
 
-io.on("connection", (socket) => {
-  console.log("a user connected.");
+    callback();
 
-  //take userId and socketId from user
-  socket.on("addUser", (userId) => {
-    addUser(userId, socket.id);
-    io.emit("getUsers", users);
   });
 
-  socket.on("disconnect", () => {
-    console.log("User Disconnected", socket.id);
-    removeUser(socket.id);
-    io.emit("getUsers", users);
+  socket.on('sendMessage', (message, callback) => {
+    const user = getUser(socket.id);
+
+    io.to(user.room).emit('message', { user: user.name, text: message });
+    io.to(user.room).emit('roomData', { room: user.room, users: getUsersInRoom(user.room) });
+
+    callback();
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User has left');
+    const user = removeUser(socket.id);
+
+    if (user) {
+      io.to(user.room).emit('message', { user: 'admin', text: `${user.name} has left.` });
+    }
+
   });
 });
 
-server.listen(PORT, () => {
-  console.log("SERVER RUNNING");
-});
+app.use(router);
+
+server.listen(PORT,
+  () => console.log(`Server has started on port ${PORT}`));
