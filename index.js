@@ -5,12 +5,19 @@ const cors = require("cors");
 const { Server } = require("socket.io");
 app.use(cors());
 
+const PORT = process.env.PORT || 3001;
+
+app.get('/',(req,res)=>{
+  res.write('<h1>Socket started at port: ${PORT}</h1>');
+  res.end();
+})
+
 const server = http.createServer(app);
 let users = [];
 
 const io = new Server(server, {
   cors: {
-    origin: ["https://wantechcorp.netlify.app/","https://www.wantechcorp.netlify.app/"],
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
@@ -44,6 +51,6 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(process.env.PORT || 3001, () => {
+server.listen(PORT, () => {
   console.log("SERVER RUNNING");
 });
